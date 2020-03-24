@@ -12,6 +12,8 @@
 
 eksctl website:  https://eksctl.io/
 
+You may follow the Amazon EKS official document - [Getting Started with eksctl](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html) to complete the cluster creation with `eksctl` or just follow the steps below.
+
 
 
 ## Steps
@@ -33,19 +35,50 @@ eksctl website:  https://eksctl.io/
 
 ![0-c9-0](../images/00-c9-03.png)
 
-5. We need to turn off the Cloud9 temporarily provided IAM credentials. 
+5. install the latest `aws-cli`
+
+copy and paste the following script in the Cloud9 terminal and press enter.
+
+```bash
+cat << EOF | bash
+cleanup() {
+  rm -rf awscli-bundle
+  rm -f awscli-bundle.zip
+}
+
+
+cleanup
+rm -rf awscli-bundle*
+curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+unzip awscli-bundle.zip
+sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+EOF
+```
+check the awscli path and version
+
+```bash
+# check the path
+$ which aws
+/usr/local/bin/aws
+# check the version
+$ aws --version
+aws-cli/1.16.184 Python/2.7.16 Linux/4.14.109-80.92.amzn1.x86_64 botocore/1.12.174
+```
+(make suer your version >= `1.16.184`)
+
+6. We need to turn off the Cloud9 temporarily provided IAM credentials. 
 
 ![0-c9-0](../images/00-c9-04.png)
 
 
 
-6. When you turn off the temporary credentials, you should not be able to un AWS CLI now.
+7. When you turn off the temporary credentials, you should not be able to un AWS CLI now.
 
 ![0-c9-0](../images/00-c9-05.png)
 
 
 
-7. execute `aws configure` to configure the credentials for your IAM user. Make sure this IAM User has **AdministratorAccess** and run `aws sts get-caller-identity` - you should be able to see the returned JSON output like this.
+8. execute `aws configure` to configure the credentials for your IAM user. Make sure this IAM User has **AdministratorAccess** and run `aws sts get-caller-identity` - you should be able to see the returned JSON output like this.
 
 ![0-c9-0](../images/00-c9-06.png)
 
@@ -53,27 +86,23 @@ eksctl website:  https://eksctl.io/
 
 
 
-8. Download the `kubectl` and `aws-iam-authenticator` binaries and save to `~/bin`. Check the Amazon EKS User Guide for [Getting Started](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html). Download the Linux binary for `kubectl` and `heptio-authenticator-aws` one by one.
+9. Download the `kubectl` and save to `~/bin`. Check the Amazon EKS User Guide for [Installing kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html). 
 
-   ```
-   $ mkdir ~/bin
-   
-   $ wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.7/2019-03-27/bin/linux/amd64/kubectl -O ~/bin/kubectl
-   $ chmod +x $_
-   
-   $ wget https://amazon-eks.s3-us-west-2.amazonaws.com/1.12.7/2019-03-27/bin/linux/amd64/aws-iam-authenticator -O ~/bin/aws-iam-authenticator
-   $ chmod +x $_
-   ```
+```bash
+$ curl https://amazon-eks.s3-us-west-2.amazonaws.com/1.14.6/2019-08-22/bin/linux/amd64/kubectl -o kubectl
+$ chmod +x $_
+$ sudo mv $_ /usr/local/bin/
+```
 
-9. Download the `eksctl` from `eksctl.io`(actually it will download from GitHub)
+10. Download the `eksctl` from `eksctl.io`(actually it will download from GitHub)
 
-   ```
-   $ curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/latest_release/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-   sudo mv /tmp/eksctl /usr/local/bin
-   ```
+```bash
+$ curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/latest_release/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+```
 
 
-10. run `eksctl help`, you should be able to see the `help` messages
+11. run `eksctl help`, you should be able to see the `help` messages
 
 ![0-c9-0](../images/00-c9-07.png)
 
@@ -81,16 +110,16 @@ eksctl website:  https://eksctl.io/
 ## create cluster with eksctl
 
 
-11. Create your Amazon EKS cluster witn `eksctl` and spin up a nodegroup with `2 nodes`
+12. Create your Amazon EKS cluster witn `eksctl` and spin up a nodegroup with `2 nodes`
 
-```
+```bash
 $ eksctl create cluster --name=<CLUSTER_NAME> --nodes 2 --auto-kubeconfig --ssh-public-key <EXISTING_SSH_KEY_NAME>
 ```
 
 ![0-c9-0](../images/00-c9-08.png)
 
 Or like this
-```
+```bash
 eksctl create cluster \
   --name=eksdemo \
   --region=us-west-2 \
@@ -106,7 +135,7 @@ eksctl create cluster \
 
 Alternatively, you may also create your cluster with cluster config file.
 
-```
+```bash
 cat << EOF > cluster.yaml
 apiVersion: eksctl.io/v1alpha4
 kind: ClusterConfig
@@ -123,23 +152,58 @@ EOF
 ```
 
 And then, just 
-```
+
+```bash
 eksctl create cluster -f cluster.yaml
 ```
-check more config samples from `eksctl` [github](https://github.com/weaveworks/eksctl/tree/master/examples)
 
 
+## Nodegroup of Mixed Instance Types and Purchase Options
+
+If you prefer to hybrid on-demand and spot instances with mixed instance types in your nodegroup, you may also create your nodegroup like this:
+
+
+
+```yaml
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+    name: eksdemo
+    region: ap-northeast-1
+
+nodeGroups:
+    - name: ng-1
+      minSize: 2
+      maxSize: 5
+      instancesDistribution:
+        instanceTypes: ["t3.small", "t3.medium", "t3.large"] # At least two instance types should be specified
+        onDemandBaseCapacity: 0
+        onDemandPercentageAboveBaseCapacity: 0
+        spotInstancePools: 2
+```
+
+save the YAML body as `mixed-ng.yaml` and create your cluster 
+
+```bash
+$ eksctl create cluster -f mixed-ng.yaml
+```
+
+This will spin up an Amazon EKS cluster with nodegroup of mixed instance types and purchase options(ondemand+spot), however, as we define `onDemandBaseCapacity: 0` and `onDemandPercentageAboveBaseCapacity: 0`, actually there will be only spot instances for the best cost optimization. You may configure those options to optionally have some ondemand instances as your baseline. Check [AWS document](https://docs.aws.amazon.com/autoscaling/ec2/userguide/asg-purchase-options.html) for more details about those attributes.
+
+
+
+More cluster config samples from `eksctl` [github](https://github.com/weaveworks/eksctl/tree/master/examples)
 
 ## Generate kubeconfig with aws eks update-kubeconfig
 
 
 And create/update your `$HOME/.kube/config` with `aws eks update-kubeconfig`
 
-```
+```bash
 aws eks update-kubeconfig --name eksdemo
 ```
-
-(Ensure your aws-cli version is at least **1.16.18**, or follow [this gist](https://gist.github.com/pahud/b748f726515d3b073b997d92b595b526) to upgrade your aws-cli in Cloud9 )
 
 After executing `aws eks update-kubeconfig`, a new context will be generated in `$HOME/.kube/config` and you can execute `kubectl get no` to list all nodes in the nodegroup.
 
