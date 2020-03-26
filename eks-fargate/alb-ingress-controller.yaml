@@ -37,16 +37,16 @@ spec:
             # Name of your cluster. Used when naming resources created
             # by the ALB Ingress Controller, providing distinction between
             # clusters.
-            - --cluster-name=eks-fargate-cluster
+            - --cluster-name=dev-fargate
 
             # AWS VPC ID this ingress controller will use to create AWS resources.
             # If unspecified, it will be discovered from ec2metadata.
-            - --aws-vpc-id=vpc-074f29eb4cc82c35b
+            - --aws-vpc-id=vpc-0acf0cb6eb3063b24
 
             # AWS region this ingress controller will operate in.
             # If unspecified, it will be discovered from ec2metadata.
             # List of regions: http://docs.aws.amazon.com/general/latest/gr/rande.html#vpc_region
-            - --aws-region=ap-northeast-1
+            - --aws-region=us-east-1
 
             # Enables logging on all outbound requests sent to the AWS API.
             # If logging is desired, set to true.
