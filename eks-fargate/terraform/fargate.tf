@@ -1,7 +1,11 @@
 /**************************
  Fargate Profiles
+
+ This will allow to define specific types of
+ workloads to deploy on fargate using selectors.
 **************************/
 
+# Core DNS
 resource "aws_eks_fargate_profile" "core_dns" {
   cluster_name           = aws_eks_cluster.this.name
   fargate_profile_name   = "core-dns"
@@ -11,13 +15,14 @@ resource "aws_eks_fargate_profile" "core_dns" {
   selector {
     namespace = "kube-system"
     labels = {
-                 "k8s-app": "kube-dns",  # core-dns
+                 "k8s-app": "kube-dns",
              }
   }
 
   depends_on = [aws_eks_cluster.this]
 }
 
+# ALB controller
 resource "aws_eks_fargate_profile" "alb" {
   cluster_name           = aws_eks_cluster.this.name
   fargate_profile_name   = "alb"
@@ -27,14 +32,14 @@ resource "aws_eks_fargate_profile" "alb" {
   selector {
     namespace = "kube-system"
     labels = {
-                 "app.kubernetes.io/name": "alb-ingress-controller"  # alb controller
+                 "app.kubernetes.io/name": "alb-ingress-controller"
              }
   }
 
   depends_on = [aws_eks_cluster.this]
 }
 
-# Provision workloads to fargate for custom name space
+# Custom namespace
 resource "aws_eks_fargate_profile" "fargate_workload" {
   cluster_name           = aws_eks_cluster.this.name
   fargate_profile_name   = "fargate-worker"
