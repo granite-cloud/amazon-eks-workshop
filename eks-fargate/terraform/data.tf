@@ -2,6 +2,9 @@
  Data Sources
 **********************/
 
+# Region
+data "aws_region" "current" {}
+
 # VPC
 data "aws_vpc" "this" {
   filter {

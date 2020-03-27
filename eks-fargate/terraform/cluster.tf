@@ -23,14 +23,23 @@ resource "aws_eks_cluster" "this" {
   ]
 }
 
-### IAM Service Account Role ###
+
+### OIDC Provider ###
+/*  This is a workaround to get the thumbprint via shell
+    #https://github.com/terraform-providers/terraform-provider-aws/issues/10104
+*/
+data "external" "thumbprint" {
+  program = [format("%s/bin/finger.sh", path.module), data.aws_region.current.name]
+}
 
 # IAM OpenID Connect provider
 resource "aws_iam_openid_connect_provider" "this" {
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = []
+  thumbprint_list = [data.external.thumbprint.result.thumbprint]
   url             = aws_eks_cluster.this.identity.0.oidc.0.issuer
 }
+
+### IAM Service Account Role ###
 
 # IAM trust policy
 data "aws_iam_policy_document" "assume_role_policy" {
