@@ -12,7 +12,7 @@ resource "aws_eks_cluster" "this" {
   vpc_config {
     endpoint_private_access = true
     endpoint_public_access  = false
-    security_group_ids      = ["sg-0a93dbd5610c2e660", "sg-0602027b9ceb891d9"]
+    security_group_ids      = var.security_groups
     subnet_ids              = data.aws_subnet_ids.all.ids
   }
 
@@ -87,15 +87,35 @@ POLICY
 
 # Attach aws managed policies
 resource "aws_iam_role_policy_attachment" "EKSClusterPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  policy_arn = "arn:aws:iam::aws:policy/${var.eks_cluster_role}"
   role       = aws_iam_role.cluster_role.name
 }
 # Attach aws managed policies
 resource "aws_iam_role_policy_attachment" "EKSServicePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+  policy_arn = "arn:aws:iam::aws:policy/${var.eks_service_role}"
   role       = aws_iam_role.cluster_role.name
 }
 
+### Exec hack to patch coredns so it will run on fargate ###
+/* # https://github.com/terraform-providers/terraform-provider-aws/issues/11327
+    It is attaching:
+    eks.amazonaws.com/compute-type: ec2
+    when it should be attaching
+    eks.amazonaws.com/compute-type: fargate
+*/
+resource "null_resource" "coredns_patch" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+kubectl patch deployment coredns \
+  --namespace kube-system \
+  --type=json \
+  -p='[{"op": "remove", "path": "/spec/template/metadata/annotations", "value": "eks.amazonaws.com/compute-type"}]'
+EOF
+  }
+
+depends_on = [aws_eks_cluster.this]
+}
 
 ### Outputs ###
 output "endpoint" {

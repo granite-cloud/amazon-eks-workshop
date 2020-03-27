@@ -8,53 +8,25 @@
 # Core DNS
 resource "aws_eks_fargate_profile" "core_dns" {
   cluster_name           = aws_eks_cluster.this.name
-  fargate_profile_name   = "core-dns"
+  fargate_profile_name   = "namespaces"
   pod_execution_role_arn = aws_iam_role.fargate_profile.arn
   subnet_ids             = data.aws_subnet_ids.private.ids
-
+  # Define what namespaces will provision to fargate
   selector {
     namespace = "kube-system"
-    labels = {
-                 "k8s-app": "kube-dns",
-             }
   }
-
-  depends_on = [aws_eks_cluster.this]
-}
-
-# ALB controller
-resource "aws_eks_fargate_profile" "alb" {
-  cluster_name           = aws_eks_cluster.this.name
-  fargate_profile_name   = "alb"
-  pod_execution_role_arn = aws_iam_role.fargate_profile.arn
-  subnet_ids             = data.aws_subnet_ids.private.ids
 
   selector {
-    namespace = "kube-system"
-    labels = {
-                 "app.kubernetes.io/name": "alb-ingress-controller"
-             }
+    namespace = "default"
   }
-
-  depends_on = [aws_eks_cluster.this]
-}
-
-# Custom namespace
-resource "aws_eks_fargate_profile" "fargate_workload" {
-  cluster_name           = aws_eks_cluster.this.name
-  fargate_profile_name   = "fargate-worker"
-  pod_execution_role_arn = aws_iam_role.fargate_profile.arn
-  subnet_ids             = data.aws_subnet_ids.private.ids
 
   selector {
     namespace = "fargate"
-    labels = {
-                "infrastructure": "fargate"
-             }
   }
 
   depends_on = [aws_eks_cluster.this]
 }
+
 
 resource "aws_iam_role" "fargate_profile" {
   name = "eks-fargate-profile"
