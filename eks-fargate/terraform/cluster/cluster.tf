@@ -3,7 +3,9 @@
  and  IAM role.
 ************************************/
 
-# Cluster
+############
+## Cluster
+############
 resource "aws_eks_cluster" "this" {
   name                      = var.cluster_name
   enabled_cluster_log_types = ["api", "audit"]
@@ -24,7 +26,9 @@ resource "aws_eks_cluster" "this" {
 }
 
 
-### OIDC Provider ###
+############
+## OIDC Provider
+############
 /*  This is a workaround to get the thumbprint via shell
     #https://github.com/terraform-providers/terraform-provider-aws/issues/10104
 */
@@ -39,7 +43,9 @@ resource "aws_iam_openid_connect_provider" "this" {
   url             = aws_eks_cluster.this.identity.0.oidc.0.issuer
 }
 
-### IAM Service Account Role ###
+############
+## IAM Service Account Role
+############
 
 # IAM trust policy
 data "aws_iam_policy_document" "assume_role_policy" {
@@ -72,7 +78,9 @@ resource "aws_iam_role_policy_attachment" "EKSS3Reader" {
   role       = aws_iam_role.service_account_role.name
 }
 
-### Cluster IAM Resources ###
+############
+## IAM Cluster Resources
+############
 
 # Role and trust policy
 resource "aws_iam_role" "cluster_role" {
