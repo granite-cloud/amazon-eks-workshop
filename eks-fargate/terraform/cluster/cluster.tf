@@ -29,7 +29,7 @@ resource "aws_eks_cluster" "this" {
     #https://github.com/terraform-providers/terraform-provider-aws/issues/10104
 */
 data "external" "thumbprint" {
-  program = [format("%s/bin/finger.sh", path.module), data.aws_region.current.name]
+  program = [format("%s../bin/finger.sh", path.module), data.aws_region.current.name]
 }
 
 # IAM OpenID Connect provider
