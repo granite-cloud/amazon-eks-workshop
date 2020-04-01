@@ -23,7 +23,7 @@ resource "aws_internet_gateway" "gw" {
 
 # Subnet
 resource "aws_subnet" "public_subnet" {
-  count                   = var.create_public == "true" ? length(var.public_subnets) : 1
+  count                   = length(var.public_subnets)
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.public_subnets[count.index]
   availability_zone       = var.aws_zones[count.index]
@@ -40,7 +40,7 @@ resource "aws_subnet" "public_subnet" {
 ## Private Subnets
 ############
 resource "aws_eip" "nat" {
-  count = length(var.aws_zones)
+  count = var.single_nat == "true" ? 1 : length(var.aws_zones)
   vpc   = true
 }
 

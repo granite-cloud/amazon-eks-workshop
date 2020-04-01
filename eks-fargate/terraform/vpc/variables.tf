@@ -13,14 +13,8 @@ variable cluster_name {
   description = "Name of EKS cluster"
 }
 
-variable create_public {
-  description = "Create public subnets"
-  type        = string
-  default     = "false"
-}
-
 variable public_subnets {
-  description = "List of public subnets (create_public must be true or this is ignored)"
+  description = "List of public subnets"
   type        = list
 }
 

@@ -15,7 +15,7 @@ resource "aws_eks_cluster" "this" {
     endpoint_private_access = true
     endpoint_public_access  = false
     security_group_ids      = var.security_groups
-    subnet_ids              = data.aws_subnet_ids.all.ids
+    subnet_ids              = var.all_subnets
   }
 
   depends_on = [
@@ -33,7 +33,7 @@ resource "aws_eks_cluster" "this" {
     #https://github.com/terraform-providers/terraform-provider-aws/issues/10104
 */
 data "external" "thumbprint" {
-  program = [format("%s../bin/finger.sh", path.module), data.aws_region.current.name]
+  program = [format("%s../bin/finger.sh", path.module), var.region]
 }
 
 # IAM OpenID Connect provider
