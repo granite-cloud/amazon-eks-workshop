@@ -1,7 +1,7 @@
 /**************************
  Fargate Profiles
 
- This will allow to define specific types of
+ This will allow defining specific types of
  workloads to deploy on fargate using selectors.
 **************************/
 
