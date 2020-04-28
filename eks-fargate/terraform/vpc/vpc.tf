@@ -32,7 +32,10 @@ resource "aws_subnet" "public_subnet" {
   tags = merge(
     var.tags,
     map(
-      "Name", format("%v-public-%v", var.vpc_name, var.aws_zones[count.index])
+      "Name", format("%v-public-%v", var.vpc_name, var.aws_zones[count.index]),
+      "kubernetes.io/role/elb", "1",
+      "kubernetes.io/cluster/${var.cluster_name}", "shared",
+      "Tier", "public"
   ))
 }
 
@@ -71,7 +74,8 @@ resource "aws_subnet" "private_subnet" {
     map(
       "Name", format("%v-private-%v", var.vpc_name, var.aws_zones[count.index]),
       "kubernetes.io/role/elb", "0",
-      "kubernetes.io/cluster/${var.cluster_name}", "shared"
+      "kubernetes.io/cluster/${var.cluster_name}", "shared",
+      "Tier", "private"
   ))
 }
 
@@ -92,8 +96,6 @@ resource "aws_route_table" "public_route" {
     var.tags,
     map(
       "Name", format("%v-public-%v", var.vpc_name, var.aws_zones[count.index]),
-      "kubernetes.io/role/elb", "1",
-      "kubernetes.io/cluster/${var.cluster_name}", "shared"
   ))
 }
 

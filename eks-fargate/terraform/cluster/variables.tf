@@ -1,7 +1,7 @@
-variable "cluster_name" {
+variable "aws_region" {
   type    = string
 }
 
-variable "vpc_id" {
+variable "cluster_name" {
   type    = string
 }

@@ -9,7 +9,8 @@ resource "aws_security_group" "control_plane" {
   vpc_id      = aws_vpc.vpc.id
 
   tags = {
-    Name = "eks-control-${var.cluster_name}"
+    Name = "eks-control-${var.cluster_name}",
+    App  = "eks"
   }
 }
 
@@ -20,7 +21,8 @@ resource "aws_security_group" "nodes" {
   vpc_id      = aws_vpc.vpc.id
 
   tags = {
-    Name = "eks-workers-${var.cluster_name}"
+    Name = "eks-workers-${var.cluster_name}",
+    App  = "eks"
   }
 }
 

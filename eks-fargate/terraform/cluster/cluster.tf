@@ -3,6 +3,11 @@
  and  IAM role.
 ************************************/
 
+module "vpc" {
+  source = "../data"
+}
+
+
 ############
 ## Cluster
 ############
@@ -14,13 +19,13 @@ resource "aws_eks_cluster" "this" {
   vpc_config {
     endpoint_private_access = true
     endpoint_public_access  = false
-    security_group_ids      = var.security_groups
-    subnet_ids              = var.all_subnets
+    security_group_ids      = module.vpc.eks_groups
+    subnet_ids              = module.vpc.subnet_ids
   }
 
   depends_on = [
     aws_iam_role_policy_attachment.EKSClusterPolicy,
-    aws_iam_role_policy_attachment.EKSServicePolicy,
+    aws_iam_role_policy_attachment.EKSFargatePodPolicy,
     aws_cloudwatch_log_group.eks
   ]
 }
@@ -33,7 +38,7 @@ resource "aws_eks_cluster" "this" {
     #https://github.com/terraform-providers/terraform-provider-aws/issues/10104
 */
 data "external" "thumbprint" {
-  program = [format("%s../bin/finger.sh", path.module), var.region]
+  program = [format("%s./bin/finger.sh", path.module), var.aws_region]
 }
 
 # IAM OpenID Connect provider
@@ -104,12 +109,13 @@ POLICY
 
 # Attach aws managed policies
 resource "aws_iam_role_policy_attachment" "EKSClusterPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/${var.eks_cluster_role}"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.cluster_role.name
 }
-# Attach aws managed policies
-resource "aws_iam_role_policy_attachment" "EKSServicePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/${var.eks_service_role}"
+
+
+resource "aws_iam_role_policy_attachment" "EKSFargatePodPolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
   role       = aws_iam_role.cluster_role.name
 }
 

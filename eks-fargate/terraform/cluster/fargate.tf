@@ -12,7 +12,7 @@ resource "aws_eks_fargate_profile" "namespaces" {
   cluster_name           = aws_eks_cluster.this.name
   fargate_profile_name   = "namespaces"
   pod_execution_role_arn = aws_iam_role.fargate_profile.arn
-  subnet_ids             = data.aws_subnet_ids.private.ids
+  subnet_ids             = module.vpc.private_subnet_ids
   # Define what namespaces will provision to fargate
   selector {
     namespace = "kube-system"

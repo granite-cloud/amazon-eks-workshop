@@ -9,7 +9,7 @@ data "aws_region" "current" {}
 data "aws_vpc" "this" {
   filter {
     name   = "tag:Name"
-    values = ["eksctl-eks-fargate-cluster-cluster/VPC"]
+    values = ["dev-fargate"]
   }
 }
 
@@ -24,16 +24,35 @@ data "aws_subnet_ids" "private" {
   vpc_id = data.aws_vpc.this.id
 
   tags = {
-    Name = "eksctl-eks-fargate-cluster-cluster/SubnetPrivateUSEAST1D"
+    Tier = "private"
+  }
+}
+
+data "aws_security_groups" "eks" {
+  tags = {
+    App   = "eks"
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.this.id]
   }
 }
 
 
 ### Outputs ###
-output "subnet_cidr_blocks" {
+output "subnet_ids" {
   value = data.aws_subnet_ids.all.ids
+}
+
+output "private_subnet_ids" {
+  value = data.aws_subnet_ids.private.ids
 }
 
 output "vpc" {
   value = data.aws_vpc.this.id
+}
+
+output "eks_groups" {
+  value = data.aws_security_groups.eks.ids
 }
