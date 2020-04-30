@@ -1,6 +1,12 @@
 #!/usr/bin/env groovy
 
+/*
+  https://www.powerupcloud.com/automate-blue-green-deployment-on-kubernetes-in-a-single-pipeline-part-10/
 
+  This pipeline was taken from the above and is converted to declarative. The intent here is to test blue / green
+  deployments to EKS. This template can be used to iterate and test different types of deployments and possible different
+  LB types.. ( or anything needed.... )
+*/
 pipeline {
   agent any
   parameters{
@@ -136,6 +142,7 @@ pipeline {
           } //steps
         } //stage
         */
+
         stage('User Input') {
           steps {
             script {
