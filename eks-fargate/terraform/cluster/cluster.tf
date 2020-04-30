@@ -18,7 +18,7 @@ resource "aws_eks_cluster" "this" {
 
   vpc_config {
     endpoint_private_access = true
-    endpoint_public_access  = false
+    endpoint_public_access  = true #testing only 
     security_group_ids      = module.vpc.eks_groups
     subnet_ids              = module.vpc.subnet_ids
   }
@@ -125,6 +125,8 @@ resource "aws_iam_role_policy_attachment" "EKSFargatePodPolicy" {
     eks.amazonaws.com/compute-type: ec2
     when it should be attaching
     eks.amazonaws.com/compute-type: fargate
+
+   Note: The cluster does not have public access
 */
 resource "null_resource" "coredns_patch" {
   provisioner "local-exec" {
