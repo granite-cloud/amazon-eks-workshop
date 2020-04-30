@@ -1,7 +1,12 @@
 variable "aws_region" {
-  type    = string
+  type = string
 }
 
 variable "cluster_name" {
-  type    = string
+  type = string
+}
+
+variable "public" {
+  type    = bool
+  default = false
 }

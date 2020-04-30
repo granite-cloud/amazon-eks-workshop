@@ -18,7 +18,7 @@ resource "aws_eks_cluster" "this" {
 
   vpc_config {
     endpoint_private_access = true
-    endpoint_public_access  = true #testing only 
+    endpoint_public_access  = var.public ? true : false #testing only
     security_group_ids      = module.vpc.eks_groups
     subnet_ids              = module.vpc.subnet_ids
   }
@@ -139,7 +139,7 @@ kubectl patch deployment coredns \
 EOF
   }
 
-depends_on = [aws_eks_cluster.this]
+  depends_on = [aws_eks_cluster.this]
 }
 
 ### Outputs ###
