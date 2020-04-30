@@ -5,7 +5,7 @@ pipeline {
   agent any
   parameters{
       string(defaultValue: "master", description: 'Which Git Branch to clone?', name: 'GIT_BRANCH')
-      string(defaultValue: "627177891842", description: 'AWS Account Number?', name: 'ACCOUNT')
+      string(description: 'AWS Account Number?', name: 'ACCOUNT')
       string(defaultValue: "taxicab-prod-svc", description: 'Blue Service Name to patch in Prod Environment', name: 'PROD_BLUE_SERVICE')
       string(defaultValue: "taxi", description: 'AWS ECR Repository where built docker images will be pushed.', name: 'ECR_REPO_NAME')
       string(defaultValue: "us-east-1", description: 'AWS Region.', name: 'AWS_REGION')
@@ -90,6 +90,7 @@ pipeline {
              }//script
            } //steps
         } //stage
+
         /*
         stage('Deploy Dev') {
           steps {
