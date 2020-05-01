@@ -53,7 +53,7 @@ resource "aws_iam_openid_connect_provider" "this" {
 ############
 
 # IAM trust policy
-data "aws_iam_policy_document" "assume_role_policy" {
+data "aws_iam_policy_document" "eks_fargate" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     effect  = "Allow"
@@ -61,7 +61,7 @@ data "aws_iam_policy_document" "assume_role_policy" {
     condition {
       test     = "StringEquals"
       variable = "${replace(aws_iam_openid_connect_provider.this.url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:kube-system:s3-reader"]
+      values   = ["system:serviceaccount:kube-system:${var.service_role_name}"]
     }
 
     principals {
@@ -71,15 +71,18 @@ data "aws_iam_policy_document" "assume_role_policy" {
   }
 }
 
-# Role
+# Service Account Role
 resource "aws_iam_role" "service_account_role" {
-  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
-  name               = "dev-eks-s3-read"
+  assume_role_policy = data.aws_iam_policy_document.eks_fargate.json
+  name               = var.service_role_name
 }
 
-# Attach aws managed policies for S3 Read
-resource "aws_iam_role_policy_attachment" "EKSS3Reader" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+/* Some testing here with alb ingress controller which already has the iam policy created.
+   **** Normally this would not be here ******
+*/
+# Attach alb ingress iam policy
+resource "aws_iam_role_policy_attachment" "alb_ingress" {
+  policy_arn = var.alb_ingress_policy
   role       = aws_iam_role.service_account_role.name
 }
 

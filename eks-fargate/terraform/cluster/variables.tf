@@ -1,3 +1,7 @@
+variable "alb_ingress_policy" {
+  type = string
+}
+
 variable "aws_region" {
   type = string
 }
@@ -9,4 +13,8 @@ variable "cluster_name" {
 variable "public" {
   type    = bool
   default = false
+}
+
+variable "service_role_name" {
+  type = string
 }

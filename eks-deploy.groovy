@@ -99,17 +99,18 @@ pipeline {
              }//script
            } //steps
         } //stage
-        /*
+
         stage('User Input') {
           steps {
             script {
                 try {
                     echo "******** ${env.STAGE_NAME} ********"
                     // Expose a user input to allow conditional logic in prod deployment stages
-                    def userInput = input message: 'Proceed to Production?',
-                                    parameters:[booleanParam(defaultValue: false, description: 'Ticking this box will do a deployment on Prod', name: 'DEPLOY_TO_PROD'),
-                                                booleanParam(defaultValue: false, description: 'First Deployment on Prod?', name: 'PROD_BLUE_DEPLOYMENT')
-                                               ]
+                    userInput = input message: 'Proceed to Production?',
+                                parameters:[booleanParam(defaultValue: false, description: 'Ticking this box will do a deployment on Prod', name: 'DEPLOY_TO_PROD'),
+                                            booleanParam(defaultValue: false, description: 'First Deployment on Prod?', name: 'PROD_BLUE_DEPLOYMENT')
+                                           ]
+
                 }
                 catch (Exception e) {
                     def user = e.getCauses()[0].getUser()
@@ -131,19 +132,21 @@ pipeline {
                           sh "sed -i 's|IMAGE|${IMAGE}|g' k8s/deployment.yaml"
                           sh "sed -i 's|ACCOUNT|${ACCOUNT}|g' k8s/service.yaml"
                           sh "sed -i 's|dev|prod|g' k8s/*.yaml"
+                          sh "sed -i 's|ENVIRONMENT|dev|g' k8s/*.yaml"
+                          sh "sed -i 's|BUILD_NUMBER|${BUILD_NUMBER}|g' k8s/*.yaml"
                           sh "${JENKINS_HOME}/tools/bin/kubectl apply -f k8s"
                           DEPLOYMENT = sh (
-                              script: 'cat k8s/deployment.yaml | yq  r -  metadata.name',
+                              script: "${JENKINS_HOME}/tools/bin/kubectl get rs -o yaml | yq -r .items[].metadata.name",
                               returnStdout: true
                           ).trim()
                           echo "Creating k8s resources..."
                           sleep 180
                           DESIRED= sh (
-                              script: "${JENKINS_HOME}/tools/bin/kubectl get deployment/$DEPLOYMENT | awk '{print \$2}' | grep -v DESIRED",
+                              script: "${JENKINS_HOME}/tools/bin/kubectl get rs/$DEPLOYMENT | awk '{print \$2}' | grep -v DESIRED",
                               returnStdout: true
                           ).trim()
                           CURRENT= sh (
-                              script: "${JENKINS_HOME}/tools/bin/kubectl get deployment/$DEPLOYMENT | awk '{print \$3}' | grep -v CURRENT",
+                              script: "${JENKINS_HOME}/tools/bin/kubectl get rs/$DEPLOYMENT | awk '{print \$3}' | grep -v CURRENT",
                               returnStdout: true
                           ).trim()
                           if (DESIRED.equals(CURRENT)) {
@@ -178,7 +181,7 @@ pipeline {
                     if (userInput['PROD_BLUE_DEPLOYMENT'] == false) {
                       withEnv(["KUBECONFIG=${JENKINS_HOME}/.kube/config"]){
                          GREEN_SVC_NAME = sh (
-                             script: "yq .metadata.name k8s/service.yaml | tr -d '\"'",
+                             script: 'yq -r .metadata.name k8s/service.yaml',
                              returnStdout: true
                          ).trim()
                          GREEN_LB = sh (
@@ -208,7 +211,7 @@ pipeline {
             }//script
           } //steps
         } //stage
-
+        /*
         stage('Patch Prod Blue Service') {
           steps {
             script {
@@ -243,14 +246,14 @@ pipeline {
             }//script
           } //steps
         } //stage
-     */
+      */
     }// stages
     // Post work after each run
     post {
         always {
             // clean up the workspace after each job
-            step([$class: 'WsCleanup'])
-            //println "pass final"  // use to test for now and look at Worspace artifcats post build as needed
+            //step([$class: 'WsCleanup'])
+            println "pass final"  // use to test for now and look at Worspace artifcats post build as needed
         }
     }//post
 }//pipeline
