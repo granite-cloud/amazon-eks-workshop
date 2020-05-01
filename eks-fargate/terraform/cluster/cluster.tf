@@ -132,6 +132,7 @@ resource "null_resource" "coredns_patch" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name ${aws_eks_cluster.this.name} && \
 kubectl patch deployment coredns \
   --namespace kube-system \
   --type=json \

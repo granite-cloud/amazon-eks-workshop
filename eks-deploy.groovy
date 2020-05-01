@@ -99,7 +99,7 @@ pipeline {
              }//script
            } //steps
         } //stage
-
+        /*
         stage('User Input') {
           steps {
             script {
@@ -217,21 +217,21 @@ pipeline {
                     if (userInput['PROD_BLUE_DEPLOYMENT'] == false) {
                        	withEnv(["KUBECONFIG=${JENKINS_HOME}/.kube/config"]){
                          	BLUE_VERSION = sh (
-                             	script: "kubectl get svc/${PROD_BLUE_SERVICE} -o yaml | yq .spec.selector.version",
+                             	script: "${JENKINS_HOME}/tools/bin/kubectl get svc/${PROD_BLUE_SERVICE} -o yaml | yq .spec.selector.version",
                            	returnStdout: true
                          	).trim()
-                         	CMD = "kubectl get deployment -l version=${BLUE_VERSION} | awk '{if(NR>1)print \$1}'"
+                         	CMD = "${JENKINS_HOME}/tools/bin/kubectl get deployment -l version=${BLUE_VERSION} | awk '{if(NR>1)print \$1}'"
                          	BLUE_DEPLOYMENT_NAME = sh (
                              	script: "${CMD}",
                            		returnStdout: true
                          	).trim()
                          	echo "${BLUE_DEPLOYMENT_NAME}"
-                         	sh """kubectl patch svc  "${PROD_BLUE_SERVICE}" -p '{\"spec\":{\"selector\":{\"app\":\"taxicab\",\"version\":\"${BUILD_NUMBER}\"}}}'"""
+                         	sh """${JENKINS_HOME}/tools/bin/kubectl patch svc  "${PROD_BLUE_SERVICE}" -p '{\"spec\":{\"selector\":{\"app\":\"taxicab\",\"version\":\"${BUILD_NUMBER}\"}}}'"""
                           // Needs to be testing here and on failure there should be a rollback that performs a patch back to the old BUILD_NUMBER for the env
-                          // sh """kubectl patch svc  "${PROD_BLUE_SERVICE}" -p '{\"spec\":{\"selector\":{\"app\":\"taxicab\",\"version\":\"${BLUE_VERSION}\"}}}'"""
+                          // sh """${JENKINS_HOME}/tools/bin/kubectl patch svc  "${PROD_BLUE_SERVICE}" -p '{\"spec\":{\"selector\":{\"app\":\"taxicab\",\"version\":\"${BLUE_VERSION}\"}}}'"""
                          	echo "Deleting Blue Environment..."
-                         	sh "kubectl delete svc ${GREEN_SVC_NAME}"
-                         	sh "kubectl delete deployment ${BLUE_DEPLOYMENT_NAME}"
+                         	sh "${JENKINS_HOME}/tools/bin/kubectl delete svc ${GREEN_SVC_NAME}"
+                         	sh "${JENKINS_HOME}/tools/bin/kubectl delete deployment ${BLUE_DEPLOYMENT_NAME}"
                     }
                    }
                 }
@@ -243,7 +243,7 @@ pipeline {
             }//script
           } //steps
         } //stage
-
+     */
     }// stages
     // Post work after each run
     post {
