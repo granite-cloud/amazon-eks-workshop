@@ -17,14 +17,15 @@ pipeline {
       string(defaultValue: "us-east-1", description: 'AWS Region.', name: 'AWS_REGION')
   }
   environment {
-    registry = "docker_hub_account/repository_name"
-    registryCredential = 'dockerhub'
+    gitUrl = 'https://github.com/granite-cloud/TaxiCabApplication.git'
+    gitCreds = 'as-github'
+    awsCreds = 'as-aws-key'
   }
   options {
        disableConcurrentBuilds()
        buildDiscarder(logRotator(numToKeepStr: '10'))
        timeout(time:120, unit:'MINUTES')
-       withAWS(credentials:'as-aws-key')
+       withAWS(credentials: env.awsCreds)
    }
    stages {
      stage('Clone Repo') {
@@ -32,11 +33,12 @@ pipeline {
              script {
                  try {
                      echo "******** ${env.STAGE_NAME} ********"
-                     git(
-                          url: 'https://github.com/granite-cloud/TaxiCabApplication.git',
-                          credentialsId: 'as-github',
-                          branch: params.GIT_BRANCH
-                      )
+                     git( url: env.gitUrl,
+                          credentialsId: env.gitCreds,
+                          branch: params.GIT_BRANCH )
+
+                      GIT_COMMIT_ID = sh ( script: 'git log -1 --pretty=%H',
+                                           returnStdout: true).trim()
                  }
                  catch (Exception e) {
                      currentBuild.result = 'FAILED'
@@ -46,6 +48,7 @@ pipeline {
              }//script
          } //steps
       } //stage
+
 
       stage('Maven Build') {
         steps {
@@ -65,31 +68,20 @@ pipeline {
         } //steps
       } //stage
 
-      stage('Build Docker Image') {
+      stage('Docker Build / Push Image') {
            steps {
              script {
                  try {
                       echo "******** ${env.STAGE_NAME} ********"
-                      CALLER_ID = sh (
-                       script: "aws sts get-caller-identity --query 'Account' --output text --region ${params.AWS_REGION}",
-                       returnStdout: true
-                     ).trim()
+                      CALLER_ID = sh ( script: "aws sts get-caller-identity --query 'Account' --output text --region ${params.AWS_REGION}",
+                                       returnStdout: true).trim()
+                     IMAGETAG = GIT_COMMIT_ID
 
-                     GIT_COMMIT_ID = sh (
-                       script: 'git log -1 --pretty=%H',
-                       returnStdout: true
-                     ).trim()
-
-                     TIMESTAMP = sh (
-                       script: 'date +%Y%m%d%H%M%S',
-                       returnStdout: true
-                     ).trim()
-
-                     echo "Git commit id: ${GIT_COMMIT_ID}"
-                     IMAGETAG="${GIT_COMMIT_ID}-${TIMESTAMP}"
-                     sh "docker build -t ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG} ."
-                     sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${CALLER_ID}.dkr.ecr.us-east-1.amazonaws.com/${ECR_REPO_NAME}"
-                     sh "docker push ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG}"
+                     // Docker build image and push to ECR
+                     def newAppVersion = docker.build("${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG}", '.')
+                     docker.withRegistry("https://${CALLER_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}", "ecr:${AWS_REGION}:${env.awsCreds}") {
+                       newAppVersion.push()
+                     }
                  }
                  catch (Exception e) {
                      currentBuild.result = 'FAILED'
@@ -128,27 +120,29 @@ pipeline {
                     echo "******** ${env.STAGE_NAME} ********"
                     if ( userInput['DEPLOY_TO_PROD'] == true) {
                       echo "Deploying to Production..."
-                        withEnv(["KUBECONFIG=${JENKINS_HOME}/.kube/config","IMAGE=${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG}"]){
+                        withEnv(["KUBECONFIG=${JENKINS_HOME}/.kube/config","IMAGE=${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG}"]){
+
                           sh "sed -i 's|IMAGE|${IMAGE}|g' k8s/deployment.yaml"
                           sh "sed -i 's|ACCOUNT|${ACCOUNT}|g' k8s/service.yaml"
+                          sh "sed -i 's|PROD_BLUE_SERVICE|${params.PROD_BLUE_SERVICE}|g' k8s/service.yaml"
                           sh "sed -i 's|dev|prod|g' k8s/*.yaml"
-                          sh "sed -i 's|ENVIRONMENT|dev|g' k8s/*.yaml"
+                          sh "sed -i 's|ENVIRONMENT|prod|g' k8s/*.yaml"
                           sh "sed -i 's|BUILD_NUMBER|${BUILD_NUMBER}|g' k8s/*.yaml"
                           sh "${JENKINS_HOME}/tools/bin/kubectl apply -f k8s"
-                          DEPLOYMENT = sh (
-                              script: "${JENKINS_HOME}/tools/bin/kubectl get rs -o yaml | yq -r .items[].metadata.name",
-                              returnStdout: true
-                          ).trim()
+
+                          // Get the name of the replica set
+                          DEPLOYMENT = sh ( script: "${JENKINS_HOME}/tools/bin/kubectl get rs -o yaml | yq -r .items[].metadata.name",
+                                            returnStdout: true).trim()
+
                           echo "Creating k8s resources..."
                           sleep 180
-                          DESIRED= sh (
-                              script: "${JENKINS_HOME}/tools/bin/kubectl get rs/$DEPLOYMENT | awk '{print \$2}' | grep -v DESIRED",
-                              returnStdout: true
-                          ).trim()
-                          CURRENT= sh (
-                              script: "${JENKINS_HOME}/tools/bin/kubectl get rs/$DEPLOYMENT | awk '{print \$3}' | grep -v CURRENT",
-                              returnStdout: true
-                          ).trim()
+
+                          DESIRED= sh ( script: "${JENKINS_HOME}/tools/bin/kubectl get rs/$DEPLOYMENT | awk '{print \$2}' | grep -v DESIRED",
+                                        returnStdout: true).trim()
+                          CURRENT= sh ( script: "${JENKINS_HOME}/tools/bin/kubectl get rs/$DEPLOYMENT | awk '{print \$3}' | grep -v CURRENT",
+                                        returnStdout: true).trim()
+
+                          // If the deployment reflects the correct number of running pods, set build as success.
                           if (DESIRED.equals(CURRENT)) {
                               currentBuild.result = "SUCCESS"
                           } else {
@@ -211,7 +205,7 @@ pipeline {
             }//script
           } //steps
         } //stage
-        /*
+
         stage('Patch Prod Blue Service') {
           steps {
             script {
@@ -246,7 +240,6 @@ pipeline {
             }//script
           } //steps
         } //stage
-      */
     }// stages
     // Post work after each run
     post {
