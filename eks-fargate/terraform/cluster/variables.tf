@@ -1,3 +1,7 @@
+variable "alb_deploy" {
+  type = bool
+}
+
 variable "alb_ingress_policy" {
   type = string
 }

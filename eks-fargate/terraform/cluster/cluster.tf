@@ -77,22 +77,13 @@ resource "aws_iam_role" "service_account_role" {
   name               = var.service_role_name
 }
 
-/* Some testing here with alb ingress controller which already has the iam policy created.
-   **** Normally this would not be here ******
-*/
-# Attach alb ingress iam policy
-resource "aws_iam_role_policy_attachment" "alb_ingress" {
-  policy_arn = var.alb_ingress_policy
-  role       = aws_iam_role.service_account_role.name
-}
-
 ############
 ## IAM Cluster Resources
 ############
 
 # Role and trust policy
 resource "aws_iam_role" "cluster_role" {
-  name = "dev-eks-cluster-role"
+  name = "${var.cluster_name}-cluster-role"
 
   assume_role_policy = <<POLICY
 {
@@ -136,6 +127,7 @@ resource "null_resource" "coredns_patch" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
 aws eks update-kubeconfig --name ${aws_eks_cluster.this.name} && \
+sleep 20 && \
 kubectl patch deployment coredns \
   --namespace kube-system \
   --type=json \

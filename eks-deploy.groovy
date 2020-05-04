@@ -19,13 +19,12 @@ pipeline {
   environment {
     gitUrl = 'https://github.com/granite-cloud/TaxiCabApplication.git'
     gitCreds = 'as-github'
-    awsCreds = 'as-aws-key'
   }
   options {
        disableConcurrentBuilds()
        buildDiscarder(logRotator(numToKeepStr: '10'))
        timeout(time:120, unit:'MINUTES')
-       withAWS(credentials: env.awsCreds)
+       withAWS(credentials: 'as-aws-key')
    }
    stages {
      stage('Clone Repo') {
@@ -79,7 +78,7 @@ pipeline {
 
                      // Docker build image and push to ECR
                      def newAppVersion = docker.build("${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG}", '.')
-                     docker.withRegistry("https://${CALLER_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}", "ecr:${AWS_REGION}:${env.awsCreds}") {
+                     docker.withRegistry("https://${CALLER_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}", "ecr:${AWS_REGION}:as-aws-key") {
                        newAppVersion.push()
                      }
                  }
@@ -123,8 +122,6 @@ pipeline {
                         withEnv(["KUBECONFIG=${JENKINS_HOME}/.kube/config","IMAGE=${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGETAG}"]){
 
                           sh "sed -i 's|IMAGE|${IMAGE}|g' k8s/deployment.yaml"
-                          sh "sed -i 's|ACCOUNT|${ACCOUNT}|g' k8s/service.yaml"
-                          sh "sed -i 's|PROD_BLUE_SERVICE|${params.PROD_BLUE_SERVICE}|g' k8s/service.yaml"
                           sh "sed -i 's|dev|prod|g' k8s/*.yaml"
                           sh "sed -i 's|ENVIRONMENT|prod|g' k8s/*.yaml"
                           sh "sed -i 's|BUILD_NUMBER|${BUILD_NUMBER}|g' k8s/*.yaml"
@@ -166,7 +163,7 @@ pipeline {
             }//script
           } //steps
         } //stage
-
+        /*
         stage('Validate Green Deployment') {
           steps {
             script {
@@ -184,7 +181,7 @@ pipeline {
                          ).trim()
                          echo "Green ENV LB: ${GREEN_LB}"
                          RESPONSE = sh (
-                             script: "curl -s -o /dev/null -w \"%{http_code}\" http://admin:password@${GREEN_LB}/swagger-ui.html -I",
+                             script: "curl -s -o /dev/null -w \"%{http_code}\" http://admin:password@${GREEN_LB}:8082/swagger-ui.html -I",
                              returnStdout: true
                          ).trim()
                          if (RESPONSE == "200") {
@@ -240,6 +237,7 @@ pipeline {
             }//script
           } //steps
         } //stage
+        */
     }// stages
     // Post work after each run
     post {
